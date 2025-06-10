@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
@@ -18,8 +18,40 @@ import {
 } from '@mui/material';
 import { Parent } from '../../types/models';
 
+// Mock data for testing
+const mockParents: Parent[] = [
+  {
+    id: 1,
+    name: 'Nguyễn Văn A',
+    email: 'nguyenvana@example.com',
+    phone: '0901234567',
+    children: [
+      { id: 1, name: 'Nguyễn Văn B' },
+      { id: 2, name: 'Nguyễn Văn C' }
+    ]
+  },
+  {
+    id: 2,
+    name: 'Trần Thị D',
+    email: 'tranthid@example.com',
+    phone: '0909876543',
+    children: [
+      { id: 3, name: 'Trần Văn E' }
+    ]
+  },
+  {
+    id: 3,
+    name: 'Lê Văn F',
+    email: 'levanf@example.com',
+    phone: '0905555555',
+    children: [
+      { id: 4, name: 'Lê Thị G' },
+      { id: 5, name: 'Lê Văn H' }
+    ]
+  }
+];
+
 const ParentManagement: React.FC = () => {
-  const [parents, setParents] = useState<Parent[]>([]);
   const [open, setOpen] = useState(false);
   const [selectedParent, setSelectedParent] = useState<Parent | null>(null);
 
@@ -63,7 +95,7 @@ const ParentManagement: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {parents.map((parent) => (
+            {mockParents.map((parent) => (
               <TableRow key={parent.id}>
                 <TableCell>{parent.name}</TableCell>
                 <TableCell>{parent.email}</TableCell>
@@ -125,4 +157,4 @@ const ParentManagement: React.FC = () => {
   );
 };
 
-export default ParentManagement; 
+export default ParentManagement;

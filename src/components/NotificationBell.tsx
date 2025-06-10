@@ -3,6 +3,7 @@ import { IconButton, Badge, Menu, MenuItem, ListItemText, Typography, Box, Stack
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import DeleteIcon from '@mui/icons-material/Delete';
+import COLORS from '../constants/colors';
 
 interface Notification {
   id: number;

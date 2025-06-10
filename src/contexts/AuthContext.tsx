@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
   id: string;
@@ -11,6 +12,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string, role: string) => Promise<void>;
   logout: () => void;
+  updateUserProfile?: (userData: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,15 +26,20 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    // Check for saved user in localStorage
+  const [user, setUser] = useState<User | null>(() => {
+    // Initialize user from localStorage
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        return JSON.parse(savedUser);
+      } catch {
+        localStorage.removeItem('user');
+        return null;
+      }
     }
-  }, []);
+    return null;
+  });
+  const navigate = useNavigate();
 
   const getMockUserData = (email: string, role: string): User => {
     const roleNames = {
@@ -55,15 +62,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const mockUser = getMockUserData(email, role);
     setUser(mockUser);
     localStorage.setItem('user', JSON.stringify(mockUser));
+    navigate('/home');
+  };
+
+  const updateUserProfile = (userData: User) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    navigate('/');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUserProfile }}>
       {children}
     </AuthContext.Provider>
   );

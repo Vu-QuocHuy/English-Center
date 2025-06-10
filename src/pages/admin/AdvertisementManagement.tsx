@@ -31,7 +31,7 @@ const mockAds: Advertisement[] = [
 ];
 
 const AdvertisementManagement: React.FC = () => {
-  const [ads, setAds] = useState<Advertisement[]>(mockAds);
+  const [ads] = useState<Advertisement[]>(mockAds);
   const [open, setOpen] = useState(false);
   const [editAd, setEditAd] = useState<Advertisement | null>(null);
 

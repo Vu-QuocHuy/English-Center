@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { getDefaultRoute } from '../../utils/routeUtils';
+import COLORS from '../../constants/colors';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -30,14 +31,63 @@ const Login: React.FC = () => {
   const [role, setRole] = useState('student');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+    if (!email) {
+      setEmailError('Email is required');
+      return false;
+    }
+    if (!emailRegex.test(email)) {
+      setEmailError('Please enter a valid email address');
+      return false;
+    }
+    setEmailError('');
+    return true;
+  };
+
+  const validatePassword = (password: string) => {
+    if (!password) {
+      setPasswordError('Password is required');
+      return false;
+    }
+    if (password.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return false;
+    }
+    setPasswordError('');
+    return true;
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    validateEmail(newEmail);
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    validatePassword(newPassword);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    const isEmailValid = validateEmail(email);
+    const isPasswordValid = validatePassword(password);
+
+    if (!isEmailValid || !isPasswordValid) {
+      return;
+    }
+
     try {
       await login(email, password, role);
-      // Redirect to the default route based on role
       const defaultRoute = getDefaultRoute(role as 'admin' | 'teacher' | 'student' | 'parent');
       navigate(defaultRoute);
     } catch (err) {
@@ -49,24 +99,32 @@ const Login: React.FC = () => {
     setShowPassword(!showPassword);
   };
 
+  const isFormValid = () => {
+    return email && password && !emailError && !passwordError;
+  };
+
   return (
     <Box
       sx={{
         minHeight: '100vh',
         display: 'flex',
         alignItems: 'center',
-        background: 'linear-gradient(45deg, #1a237e 30%, #283593 90%)',
+        backgroundColor: COLORS.background.light,
+        backgroundImage: COLORS.gradient.secondary,
       }}
     >
       <Container component="main" maxWidth="xs">
         <Paper
-          elevation={3}
+          elevation={0}
           sx={{
             p: 4,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            borderRadius: 2,
+            borderRadius: 3,
+            backgroundColor: COLORS.primary.main,
+            border: `1px solid ${COLORS.border.light}`,
+            boxShadow: COLORS.shadow.medium,
           }}
         >
           <Typography
@@ -75,7 +133,7 @@ const Login: React.FC = () => {
             sx={{
               mb: 4,
               fontWeight: 600,
-              color: 'primary.main',
+              color: COLORS.accent.primary,
               textAlign: 'center',
             }}
           >
@@ -85,15 +143,25 @@ const Login: React.FC = () => {
             variant="h5"
             sx={{
               mb: 3,
-              color: 'text.secondary',
+              color: COLORS.text.secondary,
               textAlign: 'center',
+              fontWeight: 400,
             }}
           >
             Welcome Back
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }}>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                width: '100%', 
+                mb: 2,
+                backgroundColor: COLORS.status.error.light,
+                color: COLORS.status.error.dark,
+                border: `1px solid ${COLORS.status.error.main}`,
+              }}
+            >
               {error}
             </Alert>
           )}
@@ -109,11 +177,37 @@ const Login: React.FC = () => {
               autoComplete="email"
               autoFocus
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={handleEmailChange}
+              error={!!emailError}
+              helperText={emailError}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: COLORS.primary.main,
+                  '& fieldset': {
+                    borderColor: COLORS.border.main,
+                  },
+                  '&:hover fieldset': {
+                    borderColor: COLORS.accent.primary,
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: COLORS.accent.primary,
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  color: COLORS.text.secondary,
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: COLORS.accent.primary,
+                },
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <PersonIcon color="primary" />
+                    <PersonIcon 
+                      sx={{ 
+                        color: emailError ? COLORS.status.error.main : COLORS.accent.primary 
+                      }} 
+                    />
                   </InputAdornment>
                 ),
               }}
@@ -128,11 +222,37 @@ const Login: React.FC = () => {
               id="password"
               autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={handlePasswordChange}
+              error={!!passwordError}
+              helperText={passwordError}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: COLORS.primary.main,
+                  '& fieldset': {
+                    borderColor: COLORS.border.main,
+                  },
+                  '&:hover fieldset': {
+                    borderColor: COLORS.accent.primary,
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: COLORS.accent.primary,
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  color: COLORS.text.secondary,
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: COLORS.accent.primary,
+                },
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <LockIcon color="primary" />
+                    <LockIcon 
+                      sx={{ 
+                        color: passwordError ? COLORS.status.error.main : COLORS.accent.primary 
+                      }} 
+                    />
                   </InputAdornment>
                 ),
                 endAdornment: (
@@ -141,6 +261,12 @@ const Login: React.FC = () => {
                       aria-label="toggle password visibility"
                       onClick={handleClickShowPassword}
                       edge="end"
+                      sx={{ 
+                        color: COLORS.text.secondary,
+                        '&:hover': {
+                          color: COLORS.accent.primary,
+                        },
+                      }}
                     >
                       {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
                     </IconButton>
@@ -148,13 +274,39 @@ const Login: React.FC = () => {
                 ),
               }}
             />
-            <FormControl fullWidth margin="normal">
+            <FormControl 
+              fullWidth 
+              margin="normal"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: COLORS.primary.main,
+                  '& fieldset': {
+                    borderColor: COLORS.border.main,
+                  },
+                  '&:hover fieldset': {
+                    borderColor: COLORS.accent.primary,
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: COLORS.accent.primary,
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  color: COLORS.text.secondary,
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: COLORS.accent.primary,
+                },
+              }}
+            >
               <InputLabel id="role-label">Role</InputLabel>
               <Select
                 labelId="role-label"
                 value={role}
                 label="Role"
                 onChange={(e) => setRole(e.target.value)}
+                sx={{
+                  color: COLORS.text.primary,
+                }}
               >
                 <MenuItem value="admin">Administrator</MenuItem>
                 <MenuItem value="teacher">Teacher</MenuItem>
@@ -166,12 +318,26 @@ const Login: React.FC = () => {
               type="submit"
               fullWidth
               variant="contained"
+              disabled={!isFormValid()}
               sx={{
                 mt: 3,
                 mb: 2,
                 py: 1.5,
                 fontSize: '1rem',
                 fontWeight: 600,
+                backgroundColor: COLORS.accent.primary,
+                color: COLORS.primary.main,
+                border: 'none',
+                boxShadow: COLORS.shadow.light,
+                '&:hover': {
+                  backgroundColor: COLORS.accent.primary,
+                  boxShadow: COLORS.shadow.medium,
+                  transform: 'translateY(-1px)',
+                },
+                '&:disabled': {
+                  backgroundColor: COLORS.text.disabled,
+                  color: COLORS.primary.main,
+                },
               }}
             >
               Sign In
@@ -183,4 +349,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login; 
+export default Login;

@@ -16,7 +16,7 @@ import {
 import { TeacherPayment } from '../../types/models';
 
 const TeacherPayments: React.FC = () => {
-  const [payments, setPayments] = useState<TeacherPayment[]>([]);
+  const [payments] = useState<TeacherPayment[]>([]);
   const [filterMonth, setFilterMonth] = useState<number>(new Date().getMonth() + 1);
   const [filterYear, setFilterYear] = useState<number>(new Date().getFullYear());
 

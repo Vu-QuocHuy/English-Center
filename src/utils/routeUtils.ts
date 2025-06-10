@@ -1,16 +1,4 @@
-type UserRole = 'admin' | 'teacher' | 'student' | 'parent';
-
-export const getDefaultRoute = (role: UserRole): string => {
-  switch (role) {
-    case 'admin':
-      return '/admin/dashboard';
-    case 'teacher':
-      return '/teacher/classes';
-    case 'student':
-      return '/student/dashboard';
-    case 'parent':
-      return '/parent/children';
-    default:
-      return '/';
-  }
+export const getDefaultRoute = (role: 'admin' | 'teacher' | 'student' | 'parent'): string => {
+  // Điều hướng tất cả actor về trang chủ
+  return '/home';
 }; 

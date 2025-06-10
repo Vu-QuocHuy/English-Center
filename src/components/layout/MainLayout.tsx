@@ -1,225 +1,330 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Box,
   CssBaseline,
-  Drawer,
   IconButton,
-  List,
-  ListItem,
   ListItemIcon,
   ListItemText,
   Toolbar,
   Typography,
-  Button,
   Avatar,
   Divider,
+  useTheme,
+  Menu,
+  MenuItem,
+  Button,
 } from '@mui/material';
 import {
-  Menu as MenuIcon,
   School as SchoolIcon,
   People as PeopleIcon,
   Person as PersonIcon,
   ExitToApp as LogoutIcon,
-  Dashboard as DashboardIcon,
   Payment as PaymentIcon,
+  Home as HomeIcon,
+  CalendarMonth as CalendarMonthIcon,
+  Assessment as AssessmentIcon,
+  Campaign as CampaignIcon,
+  AccountCircle as AccountCircleIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import NotificationBell from '../NotificationBell';
-
-const drawerWidth = 240;
+import WelcomeAdPopup from '../WelcomeAdPopup';
+import COLORS from '../../constants/colors';
 
 interface MainLayoutProps {
   children: React.ReactNode;
+  showHomeNavigation?: boolean;
 }
 
-const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  const [mobileOpen, setMobileOpen] = React.useState(false);
+const MainLayout: React.FC<MainLayoutProps> = ({ children, showHomeNavigation = false }) => {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [showWelcomeAd, setShowWelcomeAd] = useState(false);
+  const theme = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
+  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    handleUserMenuClose();
+    logout();
+  };
+
+  // Hiển thị popup quảng cáo khi user đăng nhập
+  React.useEffect(() => {
+    if (user) {
+      // Hiển thị ngay lập tức khi đăng nhập
+      setShowWelcomeAd(true);
+    }
+  }, [user]);
+
+  const handleCloseWelcomeAd = () => {
+    setShowWelcomeAd(false);
   };
 
   const getMenuItems = () => {
     switch (user?.role) {
       case 'admin':
         return [
-          { text: 'Tổng quan', icon: <DashboardIcon />, path: '/admin/dashboard' },
+          { text: 'Trang chủ', icon: <HomeIcon />, path: '/home' },
           { text: 'Quản lý lớp học', icon: <SchoolIcon />, path: '/admin/classes' },
           { text: 'Quản lý giáo viên', icon: <PeopleIcon />, path: '/admin/teachers' },
           { text: 'Quản lý học sinh', icon: <PersonIcon />, path: '/admin/students' },
           { text: 'Quản lý phụ huynh', icon: <PeopleIcon />, path: '/admin/parents' },
-          { text: 'Quản lý học phí', icon: <PaymentIcon />, path: '/admin/payments' },
-          { text: 'Quản lý quảng cáo', icon: <DashboardIcon />, path: '/admin/ads' },
-          { text: 'Quản lý lương giáo viên', icon: <PaymentIcon />, path: '/admin/teacher-payments' },
+          { text: 'Thống kê tài chính', icon: <AssessmentIcon />, path: '/admin/financial-statistics' },
+          { text: 'Quản lý thanh toán', icon: <PaymentIcon />, path: '/admin/payments' },
+          { text: 'Quản lý quảng cáo', icon: <CampaignIcon />, path: '/admin/ads' },
+          { text: 'Quản lý tài khoản', icon: <AccountCircleIcon />, path: '/account' },
         ];
       case 'teacher':
         return [
-          { text: 'Tổng quan', icon: <DashboardIcon />, path: '/teacher/dashboard' },
-          { text: 'Lớp của tôi', icon: <SchoolIcon />, path: '/teacher/classes' },
-          { text: 'Học sinh', icon: <PersonIcon />, path: '/teacher/students' },
-          { text: 'Điểm danh', icon: <PaymentIcon />, path: '/teacher/attendance' },
-          { text: 'Lịch làm việc', icon: <DashboardIcon />, path: '/teacher/schedule' },
+          { text: 'Trang chủ', icon: <HomeIcon />, path: '/home' },
+          { text: 'Lớp của tôi', icon: <SchoolIcon />, path: '/teacher/my-classes' },
+          { text: 'Lịch làm việc', icon: <CalendarMonthIcon />, path: '/teacher/schedule' },
+          { text: 'Quản lý tài khoản', icon: <AccountCircleIcon />, path: '/account' },
         ];
       case 'parent':
         return [
-          { text: 'Trang chủ', icon: <DashboardIcon />, path: '/parent/home' },
-          { text: 'Tổng quan', icon: <DashboardIcon />, path: '/parent/dashboard' },
-          { text: 'Thông tin con', icon: <PersonIcon />, path: '/parent/children' },
-          { text: 'Điểm danh', icon: <PersonIcon />, path: '/parent/attendance' },
+          { text: 'Trang chủ', icon: <HomeIcon />, path: '/home' },
+          { text: 'Quản lý con em', icon: <PeopleIcon />, path: '/parent/children' },
           { text: 'Học phí', icon: <PaymentIcon />, path: '/parent/payments' },
+          { text: 'Quản lý tài khoản', icon: <AccountCircleIcon />, path: '/account' },
         ];
       case 'student':
         return [
-          { text: 'Trang chủ', icon: <DashboardIcon />, path: '/student/home' },
-          { text: 'Tổng quan', icon: <DashboardIcon />, path: '/student/dashboard' },
-          { text: 'Lớp học của tôi', icon: <SchoolIcon />, path: '/student/classes' },
-          { text: 'Lịch học', icon: <DashboardIcon />, path: '/student/schedule' },
+          { text: 'Trang chủ', icon: <HomeIcon />, path: '/home' },
+          { text: 'Thời khóa biểu', icon: <CalendarMonthIcon />, path: '/student/schedule' },
+          { text: 'Học phí', icon: <PaymentIcon />, path: '/student/tuition' },
+          { text: 'Thông tin cá nhân', icon: <PersonIcon />, path: '/student/profile' },
+          { text: 'Quản lý tài khoản', icon: <AccountCircleIcon />, path: '/account' },
         ];
       default:
         return [];
     }
   };
 
-  const drawer = (
-    <div>
-      <Toolbar sx={{ backgroundColor: 'primary.dark' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar sx={{ bgcolor: 'primary.light' }}>
-            {user?.name.charAt(0).toUpperCase()}
-          </Avatar>
-          <Box>
-            <Typography variant="subtitle1" sx={{ color: 'white' }}>
-              {user?.name}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'white' }}>
-              {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : ''}
-            </Typography>
-          </Box>
-        </Box>
-      </Toolbar>
-      <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.12)' }} />
-      <List>
-        {getMenuItems().map((item) => (
-          <ListItem
-            button
-            key={item.text}
-            onClick={() => navigate(item.path)}
-            sx={{
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              },
-            }}
-          >
-            <ListItemIcon sx={{ color: 'white' }}>{item.icon}</ListItemIcon>
-            <ListItemText 
-              primary={item.text}
-              sx={{
-                '& .MuiListItemText-primary': {
-                  color: 'white',
-                },
-              }}
-            />
-          </ListItem>
-        ))}
-      </List>
-    </div>
-  );
-
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <CssBaseline />
       <AppBar
         position="fixed"
+        elevation={1}
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
-          backgroundColor: 'white',
-          color: 'primary.main',
+          width: '100%',
+          backgroundColor: COLORS.primary.main,
+          color: COLORS.text.primary,
+          borderBottom: `1px solid ${COLORS.border.light}`,
+          boxShadow: COLORS.shadow.light,
+          zIndex: theme.zIndex.drawer + 1,
         }}
       >
         <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+          <Typography 
+            variant="h6" 
+            noWrap 
+            component="div" 
+            sx={{ 
+              color: COLORS.text.primary,
+              fontWeight: 600,
+              transition: theme.transitions.create(['margin'], {
+                easing: theme.transitions.easing.easeInOut,
+                duration: theme.transitions.duration.standard,
+              }),
+            }}
           >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Trung tâm Tiếng Anh
+            English Center
           </Typography>
+          
+          {/* Home Navigation Links */}
+          {showHomeNavigation && (
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 2, 
+              ml: 4,
+              flexGrow: 1,
+            }}>
+              <Button 
+                href="#courses"
+                sx={{ 
+                  color: COLORS.text.primary,
+                  '&:hover': {
+                    backgroundColor: COLORS.secondary.light,
+                  },
+                }}
+              >
+                Khóa học
+              </Button>
+              <Button 
+                href="#testimonials"
+                sx={{ 
+                  color: COLORS.text.primary,
+                  '&:hover': {
+                    backgroundColor: COLORS.secondary.light,
+                  },
+                }}
+              >
+                Đánh giá
+              </Button>
+              <Button 
+                href="#contact"
+                sx={{ 
+                  color: COLORS.text.primary,
+                  '&:hover': {
+                    backgroundColor: COLORS.secondary.light,
+                  },
+                }}
+              >
+                Liên hệ
+              </Button>
+            </Box>
+          )}
+          
+          {!showHomeNavigation && (
+            <Box sx={{ flexGrow: 1 }} />
+          )}
+          
           {user && (user.role === 'student' || user.role === 'parent') && (
             <NotificationBell userRole={user.role} />
           )}
           {user && (
-            <Button 
-              color="primary"
-              onClick={logout}
-              startIcon={<LogoutIcon />}
-              variant="outlined"
-              size="small"
-            >
-              Đăng xuất
-            </Button>
+            <>
+              <IconButton
+                onClick={handleUserMenuOpen}
+                sx={{ ml: 2 }}
+              >
+                <Avatar sx={{ 
+                  bgcolor: COLORS.accent.primary, 
+                  color: COLORS.primary.main,
+                  width: 35, 
+                  height: 35 
+                }}>
+                  {user.name.charAt(0).toUpperCase()}
+                </Avatar>
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleUserMenuClose}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'right',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                PaperProps={{
+                  sx: {
+                    minWidth: 250,
+                    mt: 1.5,
+                    backgroundColor: COLORS.primary.main,
+                    border: `1px solid ${COLORS.border.light}`,
+                    boxShadow: COLORS.shadow.medium,
+                  }
+                }}
+              >
+                <Box sx={{ px: 2, py: 1 }}>
+                  <Typography variant="subtitle1" sx={{ color: COLORS.text.primary }}>
+                    {user.name}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: COLORS.text.secondary }}>
+                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                  </Typography>
+                </Box>
+                <Divider sx={{ borderColor: COLORS.border.light }} />
+                
+                {getMenuItems().map((item) => (
+                  <MenuItem 
+                    key={item.text}
+                    onClick={() => {
+                      navigate(item.path);
+                      handleUserMenuClose();
+                    }}
+                    sx={{
+                      color: COLORS.text.primary,
+                      backgroundColor: location.pathname === item.path ? COLORS.secondary.light : 'transparent',
+                      '&:hover': {
+                        backgroundColor: COLORS.secondary.light,
+                      },
+                    }}
+                  >
+                    <ListItemIcon sx={{ color: COLORS.text.secondary }}>
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText primary={item.text} />
+                  </MenuItem>
+                ))}
+                
+                <Divider sx={{ borderColor: COLORS.border.light }} />
+                <MenuItem 
+                  onClick={handleLogout}
+                  sx={{
+                    color: COLORS.status.error.main,
+                    '&:hover': {
+                      backgroundColor: COLORS.status.error.light,
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ color: COLORS.status.error.main }}>
+                    <LogoutIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText primary="Đăng xuất" />
+                </MenuItem>
+              </Menu>
+            </>
           )}
         </Toolbar>
       </AppBar>
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth,
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth,
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
+
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          backgroundColor: 'background.default',
+          width: '100%',
           minHeight: '100vh',
+          backgroundColor: COLORS.background.default,
+          transition: theme.transitions.create(['width', 'margin'], {
+            easing: theme.transitions.easing.easeInOut,
+            duration: theme.transitions.duration.standard,
+          }),
+          display: 'flex',
+          flexDirection: 'column',
+          pl: 2,
         }}
       >
         <Toolbar />
-        {children}
+        <Box sx={{ 
+          py: 3,
+          pr: 3,
+          flexGrow: 1,
+          maxWidth: '1600px',
+          width: '100%',
+          margin: '0 auto',
+          transition: theme.transitions.create(['width', 'margin'], {
+            easing: theme.transitions.easing.easeInOut,
+            duration: theme.transitions.duration.standard,
+          }),
+        }}>
+          {children}
+        </Box>
       </Box>
+
+      {/* Welcome Ad Popup */}
+      <WelcomeAdPopup
+        open={showWelcomeAd}
+        onClose={handleCloseWelcomeAd}
+      />
     </Box>
   );
 };
 
-export default MainLayout; 
+export default MainLayout;

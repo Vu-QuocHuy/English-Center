@@ -1,277 +1,632 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
   Grid,
   Card,
   CardContent,
-  CardActions,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
   Button,
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
+  Tabs,
+  Tab,
+  Avatar,
+  LinearProgress,
+  Alert,
+  Divider,
   List,
   ListItem,
-
-  Divider,
-  Chip,
-  LinearProgress,
-  DialogActions,
+  ListItemText,
+  ListItemIcon,
 } from '@mui/material';
 import {
   School as SchoolIcon,
-  Grade as GradeIcon,
-  Event as EventIcon,
-  Assignment as AssignmentIcon,
-  Timeline as TimelineIcon,
+  Person as PersonIcon,
+  EventAvailable as PresentIcon,
+  EventBusy as AbsentIcon,
+  Payment as PaymentIcon,
+  Visibility as ViewIcon,
+  CalendarToday as CalendarIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
+import { useAuth } from '../../contexts/AuthContext';
+import { Student, StudentClassInfo } from '../../types/models';
+import dayjs from 'dayjs';
 
-interface Class {
-  name: string;
-  schedule: string;
-  teacher: string;
-  attendance: number;
-  grade: string;
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
 }
 
-interface Child {
-  id: number;
-  name: string;
-  grade: string;
-  level: string;
-  classes: Class[];
-  attendance: number;
-  nextClass: string;
-  assignments: {
-    completed: number;
-    total: number;
-  };
-}
+const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
+  <div role="tabpanel" hidden={value !== index}>
+    {value === index && <Box>{children}</Box>}
+  </div>
+);
 
 const Children: React.FC = () => {
-  const [children] = useState<Child[]>([
-    {
-      id: 1,
-      name: 'John Doe',
-      grade: 'A',
-      level: 'Intermediate',
-      attendance: 95,
-      nextClass: '2024-03-15 09:00',
-      assignments: {
-        completed: 18,
-        total: 20,
-      },
-      classes: [
+  const { user } = useAuth();
+  const [children, setChildren] = useState<Student[]>([]);
+  const [selectedChild, setSelectedChild] = useState<Student | null>(null);
+  const [tabValue, setTabValue] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<StudentClassInfo | null>(null);
+
+  useEffect(() => {
+    fetchChildren();
+  }, [user?.id]);
+
+  const fetchChildren = async () => {
+    setLoading(true);
+    try {
+      // Mock data cho con em của phụ huynh
+      const mockChildren: Student[] = [
         {
-          name: 'IELTS Preparation',
-          schedule: 'Mon, Wed, Fri 9:00-11:00',
-          teacher: 'Mr. Smith',
-          attendance: 95,
-          grade: 'A',
-        },
-        {
-          name: 'Business English',
-          schedule: 'Tue, Thu 14:00-16:00',
-          teacher: 'Ms. Johnson',
-          attendance: 90,
-          grade: 'A-',
-        },
-      ],
-    },
-    // Add more children as needed
-  ]);
+          id: 1,
+          name: 'Nguyễn Văn An',
+          email: 'an.nguyen@email.com',
+          phone: '0901234567',
+          parentId: Number(user?.id) || 1,
+          discountPercent: 10,
+          status: 'active',
+          enrolledClasses: [
+            {
+              classId: 1,
+              className: 'IELTS Intermediate A',
+              teacherId: 1,
+              teacherName: 'Cô Nguyễn Thị Mai',
+              startDate: '2025-01-15',
+              endDate: '2025-06-15',
+              tuitionFeePerSession: 200000,
+              actualFeePerSession: 180000,
+              totalSessions: 48,
+              attendedSessions: 35,
+              absentSessions: 5,
+              schedule: {
+                days: ['Thứ 2', 'Thứ 4', 'Thứ 6'],
+                startTime: '19:00',
+                endTime: '21:00',
+                room: 'Phòng A101'
+              },
+              attendanceRecords: [
+                {
+                  id: 1,
+                  date: '2025-06-02',
+                  status: 'present',
+                  sessionTopic: 'Reading Skills - Part 1'
+                },
+                {
+                  id: 2,
+                  date: '2025-06-04',
+                  status: 'present',
+                  sessionTopic: 'Listening Practice'
+                },
+                {
+                  id: 3,
+                  date: '2025-06-06',
+                  status: 'absent',
+                  note: 'Ốm',
+                  sessionTopic: 'Speaking Practice'
+                }
+              ],
+              monthlyPayments: [
+                {
+                  id: 1,
+                  month: 5,
+                  year: 2025,
+                  sessionsInMonth: 12,
+                  originalAmount: 2400000,
+                  discountAmount: 240000,
+                  finalAmount: 2160000,
+                  paidAmount: 2160000,
+                  remainingAmount: 0,
+                  status: 'paid',
+                  paidDate: '2025-05-01'
+                },
+                {
+                  id: 2,
+                  month: 6,
+                  year: 2025,
+                  sessionsInMonth: 10,
+                  originalAmount: 2000000,
+                  discountAmount: 200000,
+                  finalAmount: 1800000,
+                  paidAmount: 900000,
+                  remainingAmount: 900000,
+                  status: 'partial',
+                  paidDate: '2025-06-01'
+                }
+              ]
+            }
+          ]
+        }
+      ];
 
-  const [selectedChild, setSelectedChild] = useState<Child | null>(null);
-  const [openClasses, setOpenClasses] = useState(false);
-  const [openAttendance, setOpenAttendance] = useState(false);
-  const [selectedAttendance, setSelectedAttendance] = useState<{ date: string; status: string }[] | null>(null);
-
-  const handleOpenClasses = (child: Child) => {
-    setSelectedChild(child);
-    setOpenClasses(true);
+      setChildren(mockChildren);
+      if (mockChildren.length > 0) {
+        setSelectedChild(mockChildren[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching children:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCloseClasses = () => {
-    setSelectedChild(null);
-    setOpenClasses(false);
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
   };
 
-  const handleOpenAttendance = (child: any) => {
-    // Giả lập dữ liệu điểm danh
-    setSelectedAttendance([
-      { date: '2024-05-01', status: 'Có mặt' },
-      { date: '2024-05-03', status: 'Nghỉ' },
-      { date: '2024-05-05', status: 'Có mặt' },
-    ]);
-    setOpenAttendance(true);
+  const getTotalUnpaidAmount = (child: Student): number => {
+    return child.enrolledClasses.reduce((total, classInfo) => {
+      return total + classInfo.monthlyPayments.reduce((classTotal, payment) => {
+        return classTotal + payment.remainingAmount;
+      }, 0);
+    }, 0);
   };
 
-  const handleCloseAttendance = () => setOpenAttendance(false);
+  const getTotalDiscountAmount = (child: Student): number => {
+    return child.enrolledClasses.reduce((total, classInfo) => {
+      return total + classInfo.monthlyPayments.reduce((classTotal, payment) => {
+        return classTotal + payment.discountAmount;
+      }, 0);
+    }, 0);
+  };
+
+  const getAttendanceRate = (classInfo: StudentClassInfo): number => {
+    const totalRecorded = classInfo.attendedSessions + classInfo.absentSessions;
+    return totalRecorded > 0 ? Math.round((classInfo.attendedSessions / totalRecorded) * 100) : 0;
+  };
+
+  const handleViewAttendance = (classInfo: StudentClassInfo) => {
+    setSelectedClass(classInfo);
+    setAttendanceDialogOpen(true);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'present':
+        return 'success';
+      case 'absent':
+        return 'error';
+      case 'late':
+        return 'warning';
+      default:
+        return 'default';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'present':
+        return 'Có mặt';
+      case 'absent':
+        return 'Vắng mặt';
+      case 'late':
+        return 'Đi muộn';
+      default:
+        return status;
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <Typography>Đang tải thông tin con em...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Quản Lý Con
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4">👨‍👩‍👧‍👦 Quản lý con em</Typography>
+        <Typography variant="body2" color="textSecondary">
+          Tổng số con: {children.length}
+        </Typography>
+      </Box>
 
       <Grid container spacing={3}>
-        {children.map((child) => (
-          <Grid item xs={12} key={child.id}>
-            <Card>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography variant="h5">{child.name}</Typography>
-                  <Chip
-                    icon={<SchoolIcon />}
-                    label={child.level}
-                    color="primary"
-                  />
+        {/* Danh sách con */}
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>📋 Danh sách con em</Typography>
+            {children.map((child) => (
+              <Card
+                key={child.id}
+                sx={{
+                  mb: 2,
+                  cursor: 'pointer',
+                  border: selectedChild?.id === child.id ? '2px solid' : '1px solid',
+                  borderColor: selectedChild?.id === child.id ? 'primary.main' : 'divider'
+                }}
+                onClick={() => setSelectedChild(child)}
+              >
+                <CardContent sx={{ pb: '16px !important' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Avatar sx={{ bgcolor: 'primary.main' }}>
+                      <PersonIcon />
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body1" fontWeight="bold">
+                        {child.name}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {child.enrolledClasses.length} lớp học
+                      </Typography>
+                      {child.discountPercent > 0 && (
+                        <Chip
+                          label={`Giảm ${child.discountPercent}%`}
+                          size="small"
+                          color="success"
+                          sx={{ mt: 0.5 }}
+                        />
+                      )}
+                      <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 0.5 }}>
+                        Còn thiếu: {getTotalUnpaidAmount(child).toLocaleString()}₫
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Paper>
+        </Grid>
+
+        {/* Chi tiết con được chọn */}
+        <Grid item xs={12} md={8}>
+          {selectedChild ? (
+            <Paper sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h5">{selectedChild.name}</Typography>
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography variant="body2" color="success.main">
+                    💰 Tổng tiết kiệm: {getTotalDiscountAmount(selectedChild).toLocaleString()}₫
+                  </Typography>
+                  <Typography variant="body2" color="error.main">
+                    💳 Tổng còn thiếu: {getTotalUnpaidAmount(selectedChild).toLocaleString()}₫
+                  </Typography>
                 </Box>
+              </Box>
 
-                <Grid container spacing={3}>
-                  <Grid item xs={12} md={4}>
-                    <Card variant="outlined">
-                      <CardContent>
-                        <Box sx={{ textAlign: 'center' }}>
-                          <GradeIcon sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
-                          <Typography variant="h6" gutterBottom>
-                            Tổng Kết Điểm
-                          </Typography>
-                          <Typography variant="h4" color="primary">
-                            {child.grade}
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
+              <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                <Tabs value={tabValue} onChange={handleTabChange}>
+                  <Tab label="🏫 Các lớp học" />
+                  <Tab label="💰 Tình hình học phí" />
+                  <Tab label="📊 Tổng quan" />
+                </Tabs>
+              </Box>
 
-                  <Grid item xs={12} md={4}>
-                    <Card variant="outlined">
-                      <CardContent>
-                        <Box sx={{ textAlign: 'center' }}>
-                          <TimelineIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
-                          <Typography variant="h6" gutterBottom>
-                            Điểm Danh
-                          </Typography>
-                          <Typography variant="h4" color="success.main">
-                            {child.attendance}%
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  <Grid item xs={12} md={4}>
-                    <Card variant="outlined">
-                      <CardContent>
-                        <Box sx={{ textAlign: 'center' }}>
-                          <AssignmentIcon sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
-                          <Typography variant="h6" gutterBottom>
-                            Bài Tập
-                          </Typography>
-                          <Box sx={{ width: '100%', mt: 1 }}>
-                            <LinearProgress
-                              variant="determinate"
-                              value={(child.assignments.completed / child.assignments.total) * 100}
-                              sx={{ height: 10, borderRadius: 5 }}
-                            />
-                            <Typography variant="body2" sx={{ mt: 1 }}>
-                              {child.assignments.completed}/{child.assignments.total} Đã Hoàn Thành
-                            </Typography>
+              {/* Tab 1: Các lớp học */}
+              <TabPanel value={tabValue} index={0}>
+                <Grid container spacing={2}>
+                  {selectedChild.enrolledClasses.map((classInfo) => (
+                    <Grid item xs={12} key={classInfo.classId}>
+                      <Card sx={{ mb: 2 }}>
+                        <CardContent>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                            <Box>
+                              <Typography variant="h6" color="primary.main">
+                                {classInfo.className}
+                              </Typography>
+                              <Typography variant="body2" color="textSecondary">
+                                👨‍🏫 {classInfo.teacherName}
+                              </Typography>
+                            </Box>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<ViewIcon />}
+                              onClick={() => handleViewAttendance(classInfo)}
+                            >
+                              Xem chi tiết
+                            </Button>
                           </Box>
-                        </Box>
+                          
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6}>
+                              <Box sx={{ mb: 2 }}>
+                                <Typography variant="subtitle2" gutterBottom>📅 Lịch học:</Typography>
+                                <Typography variant="body2">
+                                  {classInfo.schedule.days.join(', ')} • {classInfo.schedule.startTime} - {classInfo.schedule.endTime}
+                                </Typography>
+                                <Typography variant="body2" color="textSecondary">
+                                  📍 {classInfo.schedule.room}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            
+                            <Grid item xs={12} sm={6}>
+                              <Box sx={{ mb: 2 }}>
+                                <Typography variant="subtitle2" gutterBottom>📊 Điểm danh:</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                  <Typography variant="body2">Tỷ lệ tham dự:</Typography>
+                                  <Chip
+                                    label={`${getAttendanceRate(classInfo)}%`}
+                                    color={getAttendanceRate(classInfo) >= 80 ? 'success' : 'warning'}
+                                    size="small"
+                                  />
+                                </Box>
+                                <LinearProgress
+                                  variant="determinate"
+                                  value={getAttendanceRate(classInfo)}
+                                  color={getAttendanceRate(classInfo) >= 80 ? 'success' : 'warning'}
+                                />
+                                <Typography variant="caption" color="textSecondary">
+                                  ✅ {classInfo.attendedSessions} buổi có mặt • ❌ {classInfo.absentSessions} buổi vắng
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          </Grid>
+
+                          <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                            <Typography variant="subtitle2" gutterBottom>💰 Học phí:</Typography>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <Box>
+                                <Typography variant="body2">
+                                  Học phí gốc: <span style={{ textDecoration: 'line-through' }}>{classInfo.tuitionFeePerSession.toLocaleString()}₫/buổi</span>
+                                </Typography>
+                                <Typography variant="body2" color="success.main" fontWeight="bold">
+                                  Học phí thực: {classInfo.actualFeePerSession.toLocaleString()}₫/buổi
+                                </Typography>
+                              </Box>
+                              <Chip
+                                label={`Tiết kiệm ${selectedChild.discountPercent}%`}
+                                color="success"
+                                size="small"
+                              />
+                            </Box>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </TabPanel>
+
+              {/* Tab 2: Tình hình học phí */}
+              <TabPanel value={tabValue} index={1}>
+                {selectedChild.enrolledClasses.map((classInfo) => (
+                  <Card key={classInfo.classId} sx={{ mb: 3 }}>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom color="primary.main">
+                        {classInfo.className}
+                      </Typography>
+                      
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell>📅 Tháng/Năm</TableCell>
+                              <TableCell align="right">📚 Số buổi</TableCell>
+                              <TableCell align="right">💰 Tiền gốc</TableCell>
+                              <TableCell align="right">🎁 Giảm giá</TableCell>
+                              <TableCell align="right">💵 Phải đóng</TableCell>
+                              <TableCell align="right">✅ Đã đóng</TableCell>
+                              <TableCell align="right">⏳ Còn thiếu</TableCell>
+                              <TableCell align="center">📊 Trạng thái</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {classInfo.monthlyPayments.map((payment) => (
+                              <TableRow key={payment.id}>
+                                <TableCell>
+                                  <Typography variant="body2" fontWeight="bold">
+                                    {payment.month}/{payment.year}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell align="right">{payment.sessionsInMonth}</TableCell>
+                                <TableCell align="right">
+                                  <Typography variant="body2" sx={{ textDecoration: 'line-through' }}>
+                                    {payment.originalAmount.toLocaleString()}₫
+                                  </Typography>
+                                </TableCell>
+                                <TableCell align="right">
+                                  <Typography variant="body2" color="success.main">
+                                    -{payment.discountAmount.toLocaleString()}₫
+                                  </Typography>
+                                </TableCell>
+                                <TableCell align="right">
+                                  <Typography variant="body2" fontWeight="bold">
+                                    {payment.finalAmount.toLocaleString()}₫
+                                  </Typography>
+                                </TableCell>
+                                <TableCell align="right">
+                                  <Typography variant="body2" color="success.main">
+                                    {payment.paidAmount.toLocaleString()}₫
+                                  </Typography>
+                                </TableCell>
+                                <TableCell align="right">
+                                  <Typography
+                                    variant="body2"
+                                    color={payment.remainingAmount > 0 ? 'error.main' : 'success.main'}
+                                    fontWeight="bold"
+                                  >
+                                    {payment.remainingAmount.toLocaleString()}₫
+                                  </Typography>
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Chip
+                                    label={
+                                      payment.status === 'paid' ? '✅ Đã đóng' :
+                                      payment.status === 'partial' ? '🔄 Đóng 1 phần' : '❌ Chưa đóng'
+                                    }
+                                    color={
+                                      payment.status === 'paid' ? 'success' :
+                                      payment.status === 'partial' ? 'warning' : 'error'
+                                    }
+                                    size="small"
+                                  />
+                                  {payment.paidDate && (
+                                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                                      {dayjs(payment.paidDate).format('DD/MM/YYYY')}
+                                    </Typography>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </CardContent>
+                  </Card>
+                ))}
+              </TabPanel>
+
+              {/* Tab 3: Tổng quan */}
+              <TabPanel value={tabValue} index={2}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom color="primary.main">
+                          📊 Thống kê học tập
+                        </Typography>
+                        <List>
+                          <ListItem>
+                            <ListItemIcon><SchoolIcon color="primary" /></ListItemIcon>
+                            <ListItemText
+                              primary={`${selectedChild.enrolledClasses.length} lớp học`}
+                              secondary="Đang theo học"
+                            />
+                          </ListItem>
+                          <ListItem>
+                            <ListItemIcon><PresentIcon color="success" /></ListItemIcon>
+                            <ListItemText
+                              primary={`${selectedChild.enrolledClasses.reduce((sum, c) => sum + c.attendedSessions, 0)} buổi`}
+                              secondary="Đã tham dự"
+                            />
+                          </ListItem>
+                          <ListItem>
+                            <ListItemIcon><AbsentIcon color="error" /></ListItemIcon>
+                            <ListItemText
+                              primary={`${selectedChild.enrolledClasses.reduce((sum, c) => sum + c.absentSessions, 0)} buổi`}
+                              secondary="Đã vắng mặt"
+                            />
+                          </ListItem>
+                        </List>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  
+                  <Grid item xs={12} md={6}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom color="success.main">
+                          💰 Thống kê tài chính
+                        </Typography>
+                        <List>
+                          <ListItem>
+                            <ListItemIcon><TrendingUpIcon color="success" /></ListItemIcon>
+                            <ListItemText
+                              primary={`${getTotalDiscountAmount(selectedChild).toLocaleString()}₫`}
+                              secondary={`Đã tiết kiệm (${selectedChild.discountPercent}% giảm giá)`}
+                            />
+                          </ListItem>
+                          <ListItem>
+                            <ListItemIcon><PaymentIcon color="warning" /></ListItemIcon>
+                            <ListItemText
+                              primary={`${getTotalUnpaidAmount(selectedChild).toLocaleString()}₫`}
+                              secondary="Tổng số tiền còn thiếu"
+                            />
+                          </ListItem>
+                        </List>
+                        
+                        {getTotalUnpaidAmount(selectedChild) > 0 && (
+                          <Alert severity="warning" sx={{ mt: 2 }}>
+                            <Typography variant="body2">
+                              ⚠️ Vui lòng liên hệ nhà trường để đóng học phí còn thiếu.
+                            </Typography>
+                          </Alert>
+                        )}
                       </CardContent>
                     </Card>
                   </Grid>
                 </Grid>
-
-                <Box sx={{ mt: 3 }}>
-                  <Typography variant="subtitle1" gutterBottom>
-                    Lớp Học Tiếp Theo
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <EventIcon sx={{ mr: 1, color: 'primary.main' }} />
-                    <Typography>
-                      {new Date(child.nextClass).toLocaleString()}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                {/* Hiển thị tổng tiền học, tiền đã giảm, công nợ */}
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle1">Tổng tiền học: 2.000.000₫</Typography>
-                  <Typography variant="subtitle1" color="success.main">Tiền đã giảm: 200.000₫</Typography>
-                  <Typography variant="subtitle1" color="error.main">Công nợ: 500.000₫</Typography>
-                </Box>
-              </CardContent>
-              <CardActions>
-                <Button startIcon={<SchoolIcon />} onClick={() => handleOpenClasses(child)}>
-                  Xem Lớp
-                </Button>
-                <Button startIcon={<EventIcon />} onClick={() => handleOpenAttendance(child)}>
-                  Lịch sử điểm danh
-                </Button>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
+              </TabPanel>
+            </Paper>
+          ) : (
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Typography variant="h6" color="textSecondary">
+                Chọn một con để xem thông tin chi tiết
+              </Typography>
+            </Paper>
+          )}
+        </Grid>
       </Grid>
 
-      <Dialog open={openClasses} onClose={handleCloseClasses} maxWidth="md" fullWidth>
-        <DialogTitle>Lớp - {selectedChild?.name}</DialogTitle>
+      {/* Dialog xem chi tiết điểm danh */}
+      <Dialog open={attendanceDialogOpen} onClose={() => setAttendanceDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>
+          📊 Chi tiết điểm danh - {selectedClass?.className}
+        </DialogTitle>
         <DialogContent>
-          <List>
-            {selectedChild?.classes.map((cls, index) => (
-              <React.Fragment key={index}>
-                <ListItem>
-                  <Box sx={{ width: '100%' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="h6">{cls.name}</Typography>
-                      <Chip label={`Điểm: ${cls.grade}`} color="primary" size="small" />
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Giáo viên: {cls.teacher}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Lịch học: {cls.schedule}
-                    </Typography>
-                    <Typography variant="body2" gutterBottom>
-                      Số buổi đã học: {cls.attendance}%
-                    </Typography>
-                    <Typography variant="body2" gutterBottom>
-                      Điểm: {cls.grade}
-                    </Typography>
-                    <Box sx={{ mt: 1 }}>
-                      <Typography variant="body2" gutterBottom>
-                        Công nợ: 0 VNĐ
-                      </Typography>
-                      <LinearProgress
-                        variant="determinate"
-                        value={cls.attendance}
-                        sx={{ height: 5, borderRadius: 5 }}
-                      />
-                    </Box>
-                  </Box>
-                </ListItem>
-                {index < selectedChild.classes.length - 1 && <Divider />}
-              </React.Fragment>
-            ))}
-          </List>
-        </DialogContent>
-      </Dialog>
-
-      {/* Popup lịch sử điểm danh */}
-      <Dialog open={openAttendance} onClose={handleCloseAttendance} maxWidth="sm" fullWidth>
-        <DialogTitle>Lịch sử điểm danh</DialogTitle>
-        <DialogContent>
-          <ul>
-            {selectedAttendance?.map((item, idx) => (
-              <li key={idx}>{item.date}: {item.status}</li>
-            ))}
-          </ul>
+          {selectedClass && (
+            <>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+                👨‍🏫 Giáo viên: {selectedClass.teacherName} | 📍 {selectedClass.schedule.room}
+              </Typography>
+              
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>📅 Ngày học</TableCell>
+                      <TableCell>📚 Chủ đề</TableCell>
+                      <TableCell align="center">📊 Trạng thái</TableCell>
+                      <TableCell>📝 Ghi chú</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {selectedClass.attendanceRecords.map((record) => (
+                      <TableRow key={record.id}>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="bold">
+                            {dayjs(record.date).format('DD/MM/YYYY')}
+                          </Typography>
+                          <Typography variant="caption" color="textSecondary">
+                            {dayjs(record.date).format('dddd')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {record.sessionTopic || 'Chưa cập nhật'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={getStatusText(record.status)}
+                            color={getStatusColor(record.status) as any}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {record.note || '-'}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseAttendance}>Đóng</Button>
+          <Button onClick={() => setAttendanceDialogOpen(false)}>Đóng</Button>
         </DialogActions>
       </Dialog>
     </Box>
