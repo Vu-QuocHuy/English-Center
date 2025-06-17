@@ -1,5 +1,5 @@
 export const API_CONFIG = {
-  BASE_URL: 'https://eng-center-management.onrender.com',
+  BASE_URL: 'https://eng-center-management.onrender.com/api/v1',
   ENDPOINTS: {
     // Auth endpoints
     AUTH: {
