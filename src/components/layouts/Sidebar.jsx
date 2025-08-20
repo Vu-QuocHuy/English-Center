@@ -12,6 +12,7 @@ import CampaignIcon from '@mui/icons-material/Campaign';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import PaymentIcon from '@mui/icons-material/Payment';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
+import WebIcon from '@mui/icons-material/Web';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLORS } from '../../utils/colors';
@@ -29,6 +30,7 @@ const getMenuItemsByRole = (role) => {
         { text: 'Quản lý lớp học', icon: <ClassIcon />, path: '/admin/classes' },
         { text: 'Quản lý phụ huynh', icon: <FamilyRestroomIcon />, path: '/admin/parents' },
         { text: 'Quản lý quảng cáo', icon: <CampaignIcon />, path: '/admin/advertisements' },
+        { text: 'Quản lý trang chủ', icon: <WebIcon />, path: '/admin/homepage' },
         { text: 'Thống kê', icon: <AssessmentIcon />, path: '/admin/statistics' },
       ];
     case 'teacher':

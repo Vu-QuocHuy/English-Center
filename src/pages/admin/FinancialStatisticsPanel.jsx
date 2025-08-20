@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Typography, Paper, Grid, TextField, MenuItem, Card, CardContent, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Pagination, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, Alert, InputAdornment, Tooltip
+  Box, Typography, Paper, Grid, TextField, MenuItem, Card, CardContent, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Pagination, IconButton, Button, Dialog, DialogTitle, DialogContent, DialogActions, Alert, InputAdornment, Tooltip, FormControl, InputLabel, Select
 } from '@mui/material';
-import { History as HistoryIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
+import { 
+  History as HistoryIcon, 
+  Visibility as VisibilityIcon, 
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon
+} from '@mui/icons-material';
 import { getPaymentsAPI, getTeacherPaymentsAPI, payTeacherAPI, getTotalPaymentsAPI, getTeacherByIdAPI } from '../../services/api';
 import PaymentHistoryModal from '../../components/common/PaymentHistoryModal';
 import NotificationSnackbar from '../../components/common/NotificationSnackbar';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { commonStyles } from '../../utils/styles';
 
 const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 const months = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -22,8 +29,10 @@ const FinancialStatisticsPanel = () => {
   const [customEnd, setCustomEnd] = useState(new Date().toISOString().split('T')[0]);
   const [studentPayments, setStudentPayments] = useState([]);
   const [teacherPayments, setTeacherPayments] = useState([]);
+  const [otherTransactions, setOtherTransactions] = useState([]);
   const [loadingStudent, setLoadingStudent] = useState(false);
   const [loadingTeacher, setLoadingTeacher] = useState(false);
+  const [loadingOther, setLoadingOther] = useState(false);
   const [studentPaymentsLoaded, setStudentPaymentsLoaded] = useState(false);
   const [studentPagination, setStudentPagination] = useState({
     page: 1,
@@ -37,11 +46,19 @@ const FinancialStatisticsPanel = () => {
     totalPages: 1,
     totalResults: 0
   });
+  const [otherPagination, setOtherPagination] = useState({
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+    totalResults: 0
+  });
   const [totalStatistics, setTotalStatistics] = useState({
     totalStudentFees: 0,
     totalPaidAmount: 0,
     totalRemainingAmount: 0,
-    totalTeacherSalary: 0
+    totalTeacherSalary: 0,
+    totalOtherIncome: 0,
+    totalOtherExpense: 0
   });
 
   // Payment history modal states
@@ -63,6 +80,19 @@ const FinancialStatisticsPanel = () => {
   // ConfirmDialog states for teacher payment
   const [teacherPaymentConfirmOpen, setTeacherPaymentConfirmOpen] = useState(false);
   const [teacherPaymentConfirmData, setTeacherPaymentConfirmData] = useState(null);
+
+  // Other transactions states
+  const [otherTransactionDialog, setOtherTransactionDialog] = useState({ open: false, type: 'add', data: null });
+  const [otherTransactionForm, setOtherTransactionForm] = useState({
+    title: '',
+    description: '',
+    amount: '',
+    type: 'expense', // 'income' or 'expense'
+    category: '',
+    date: new Date().toISOString().split('T')[0],
+    paymentMethod: 'cash'
+  });
+  const [otherTransactionLoading, setOtherTransactionLoading] = useState(false);
 
   // Helper: Lấy tháng đầu/cuối quý
   const getQuarterMonths = (quarter) => {
@@ -89,11 +119,21 @@ const FinancialStatisticsPanel = () => {
       // Tính tổng lương giáo viên từ dữ liệu hiện tại
       const totalTeacherSalary = teacherPayments.reduce((total, p) => total + (p.totalAmount ?? 0), 0);
 
+      // Tính tổng thu chi khác
+      const totalOtherIncome = otherTransactions
+        .filter(t => t.type === 'income')
+        .reduce((total, t) => total + (t.amount ?? 0), 0);
+      const totalOtherExpense = otherTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((total, t) => total + (t.amount ?? 0), 0);
+
       setTotalStatistics({
         totalStudentFees,
         totalPaidAmount,
         totalRemainingAmount,
-        totalTeacherSalary
+        totalTeacherSalary,
+        totalOtherIncome,
+        totalOtherExpense
       });
     } catch (err) {
       console.error('Error fetching total statistics:', err);
@@ -108,11 +148,20 @@ const FinancialStatisticsPanel = () => {
 
         const totalTeacherSalary = teacherPayments.reduce((total, p) => total + (p.totalAmount ?? 0), 0);
 
+        const totalOtherIncome = otherTransactions
+          .filter(t => t.type === 'income')
+          .reduce((total, t) => total + (t.amount ?? 0), 0);
+        const totalOtherExpense = otherTransactions
+          .filter(t => t.type === 'expense')
+          .reduce((total, t) => total + (t.amount ?? 0), 0);
+
         setTotalStatistics({
           totalStudentFees,
           totalPaidAmount,
           totalRemainingAmount,
-          totalTeacherSalary
+          totalTeacherSalary,
+          totalOtherIncome,
+          totalOtherExpense
         });
       } catch (fallbackErr) {
         console.error('Error in fallback calculation:', fallbackErr);
@@ -208,14 +257,264 @@ const FinancialStatisticsPanel = () => {
     }
   };
 
+  // Mock API functions for other transactions (replace with real API calls later)
+  const getOtherTransactionsAPI = async (params) => {
+    // Mock data - replace with real API call
+    const mockData = [
+      {
+        id: 1,
+        title: 'Tiền điện tháng 12/2024',
+        description: 'Hóa đơn tiền điện trung tâm',
+        amount: 2500000,
+        type: 'expense',
+        category: 'Điện',
+        date: '2024-12-15',
+        paymentMethod: 'bank_transfer',
+        createdAt: '2024-12-15T10:00:00Z'
+      },
+      {
+        id: 2,
+        title: 'Tiền nước tháng 12/2024',
+        description: 'Hóa đơn tiền nước trung tâm',
+        amount: 800000,
+        type: 'expense',
+        category: 'Nước',
+        date: '2024-12-10',
+        paymentMethod: 'cash',
+        createdAt: '2024-12-10T14:30:00Z'
+      },
+      {
+        id: 3,
+        title: 'Thuê mặt bằng tháng 12/2024',
+        description: 'Tiền thuê mặt bằng trung tâm',
+        amount: 15000000,
+        type: 'expense',
+        category: 'Thuê mặt bằng',
+        date: '2024-12-01',
+        paymentMethod: 'bank_transfer',
+        createdAt: '2024-12-01T09:00:00Z'
+      },
+      {
+        id: 4,
+        title: 'Thu nhập từ dịch vụ phụ',
+        description: 'Thu nhập từ các dịch vụ bổ sung',
+        amount: 3000000,
+        type: 'income',
+        category: 'Dịch vụ phụ',
+        date: '2024-12-20',
+        paymentMethod: 'cash',
+        createdAt: '2024-12-20T16:00:00Z'
+      }
+    ];
+
+    // Filter by date range if provided
+    let filteredData = mockData;
+    if (params.year) {
+      filteredData = mockData.filter(item => new Date(item.date).getFullYear() === params.year);
+    }
+    if (params.startMonth && params.endMonth) {
+      filteredData = filteredData.filter(item => {
+        const month = new Date(item.date).getMonth() + 1;
+        return month >= params.startMonth && month <= params.endMonth;
+      });
+    }
+
+    // Simulate pagination
+    const startIndex = (params.page - 1) * params.limit;
+    const endIndex = startIndex + params.limit;
+    const paginatedData = filteredData.slice(startIndex, endIndex);
+
+    return {
+      data: paginatedData,
+      totalPages: Math.ceil(filteredData.length / params.limit),
+      totalResults: filteredData.length
+    };
+  };
+
+  const createOtherTransactionAPI = async (data) => {
+    // Mock API call - replace with real implementation
+    console.log('Creating other transaction:', data);
+    return { success: true, data: { ...data, id: Date.now() } };
+  };
+
+  const updateOtherTransactionAPI = async (id, data) => {
+    // Mock API call - replace with real implementation
+    console.log('Updating other transaction:', id, data);
+    return { success: true, data: { ...data, id } };
+  };
+
+  const deleteOtherTransactionAPI = async (id) => {
+    // Mock API call - replace with real implementation
+    console.log('Deleting other transaction:', id);
+    return { success: true };
+  };
+
+  const fetchOtherTransactions = async (page = 1) => {
+    setLoadingOther(true);
+    try {
+      let params = { page, limit: 10 };
+
+      if (periodType === 'month') {
+        params = { ...params, year: selectedYear, month: selectedMonth };
+      } else if (periodType === 'quarter') {
+        const { startMonth, endMonth } = getQuarterMonths(selectedQuarter);
+        params = { ...params, year: selectedYear, startMonth, endMonth };
+      } else if (periodType === 'year') {
+        params = { ...params, year: selectedYear };
+      } else if (periodType === 'custom') {
+        const year = new Date(customStart).getFullYear();
+        const startMonth = new Date(customStart).getMonth() + 1;
+        const endMonth = new Date(customEnd).getMonth() + 1;
+        params = { ...params, year, startMonth, endMonth };
+      }
+
+      const res = await getOtherTransactionsAPI(params);
+      setOtherTransactions(res.data || []);
+      setOtherPagination({
+        page: page,
+        limit: 10,
+        totalPages: res.totalPages || 1,
+        totalResults: res.totalResults || 0
+      });
+    } catch (err) {
+      console.error('Error fetching other transactions:', err);
+      setOtherTransactions([]);
+      setOtherPagination({ page: 1, limit: 10, totalPages: 1, totalResults: 0 });
+    } finally {
+      setLoadingOther(false);
+    }
+  };
+
+  const handleOtherPageChange = (event, newPage) => {
+    fetchOtherTransactions(newPage);
+  };
+
+  const handleOpenOtherTransactionDialog = (type = 'add', data = null) => {
+    if (type === 'add') {
+      setOtherTransactionForm({
+        title: '',
+        description: '',
+        amount: '',
+        type: 'expense',
+        category: '',
+        date: new Date().toISOString().split('T')[0],
+        paymentMethod: 'cash'
+      });
+    } else {
+      setOtherTransactionForm({
+        title: data.title || '',
+        description: data.description || '',
+        amount: data.amount?.toString() || '',
+        type: data.type || 'expense',
+        category: data.category || '',
+        date: data.date || new Date().toISOString().split('T')[0],
+        paymentMethod: data.paymentMethod || 'cash'
+      });
+    }
+    setOtherTransactionDialog({ open: true, type, data });
+  };
+
+  const handleCloseOtherTransactionDialog = () => {
+    setOtherTransactionDialog({ open: false, type: 'add', data: null });
+    setOtherTransactionForm({
+      title: '',
+      description: '',
+      amount: '',
+      type: 'expense',
+      category: '',
+      date: new Date().toISOString().split('T')[0],
+      paymentMethod: 'cash'
+    });
+  };
+
+  const handleSaveOtherTransaction = async () => {
+    if (!otherTransactionForm.title || !otherTransactionForm.amount) {
+      setSnackbar({
+        open: true,
+        message: 'Vui lòng nhập đầy đủ thông tin',
+        severity: 'error'
+      });
+      return;
+    }
+
+    const amount = parseFloat(otherTransactionForm.amount);
+    if (isNaN(amount) || amount <= 0) {
+      setSnackbar({
+        open: true,
+        message: 'Số tiền không hợp lệ',
+        severity: 'error'
+      });
+      return;
+    }
+
+    setOtherTransactionLoading(true);
+    try {
+      const transactionData = {
+        ...otherTransactionForm,
+        amount: amount
+      };
+
+      if (otherTransactionDialog.type === 'add') {
+        await createOtherTransactionAPI(transactionData);
+        setSnackbar({
+          open: true,
+          message: 'Thêm giao dịch thành công!',
+          severity: 'success'
+        });
+      } else {
+        await updateOtherTransactionAPI(otherTransactionDialog.data.id, transactionData);
+        setSnackbar({
+          open: true,
+          message: 'Cập nhật giao dịch thành công!',
+          severity: 'success'
+        });
+      }
+
+      handleCloseOtherTransactionDialog();
+      fetchOtherTransactions(otherPagination.page);
+      fetchTotalStatistics();
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Có lỗi xảy ra khi lưu giao dịch',
+        severity: 'error'
+      });
+    } finally {
+      setOtherTransactionLoading(false);
+    }
+  };
+
+  const handleDeleteOtherTransaction = async (transaction) => {
+    if (window.confirm(`Bạn có chắc muốn xóa giao dịch "${transaction.title}"?`)) {
+      try {
+        await deleteOtherTransactionAPI(transaction.id);
+        setSnackbar({
+          open: true,
+          message: 'Xóa giao dịch thành công!',
+          severity: 'success'
+        });
+        fetchOtherTransactions(otherPagination.page);
+        fetchTotalStatistics();
+      } catch (error) {
+        setSnackbar({
+          open: true,
+          message: 'Có lỗi xảy ra khi xóa giao dịch',
+          severity: 'error'
+        });
+      }
+    }
+  };
+
   useEffect(() => {
     // Chỉ fetch teacher payments và total statistics khi filter thay đổi
     fetchTeacherPayments(1); // Reset về page 1
     fetchTotalStatistics();
+    fetchOtherTransactions(1); // Fetch other transactions
     // Reset student payments loaded flag và pagination khi filter thay đổi
     setStudentPaymentsLoaded(false);
     setStudentPagination(prev => ({ ...prev, page: 1 }));
     setTeacherPagination(prev => ({ ...prev, page: 1 }));
+    setOtherPagination(prev => ({ ...prev, page: 1 }));
   }, [periodType, selectedYear, selectedMonth, selectedQuarter, customStart, customEnd, paymentStatus]);
 
   // Fetch student payments chỉ khi vào tab chi tiết học sinh
@@ -453,7 +752,7 @@ const FinancialStatisticsPanel = () => {
       </Typography>
       {/* Cards tổng quan */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>Tổng lương giáo viên</Typography>
@@ -461,7 +760,7 @@ const FinancialStatisticsPanel = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>Tổng học phí</Typography>
@@ -469,7 +768,7 @@ const FinancialStatisticsPanel = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>Đã thu</Typography>
@@ -477,11 +776,27 @@ const FinancialStatisticsPanel = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>Còn thiếu</Typography>
               <Typography variant="h5" color="warning.main" fontWeight="bold">{totalStatistics.totalRemainingAmount.toLocaleString()} ₫</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={2}>
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>Thu nhập khác</Typography>
+              <Typography variant="h5" color="success.main" fontWeight="bold">{totalStatistics.totalOtherIncome.toLocaleString()} ₫</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={2}>
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>Chi phí khác</Typography>
+              <Typography variant="h5" color="error.main" fontWeight="bold">{totalStatistics.totalOtherExpense.toLocaleString()} ₫</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -565,6 +880,7 @@ const FinancialStatisticsPanel = () => {
         <Tabs value={tab} onChange={(_, v) => setTab(v)}>
           <Tab label="Chi tiết giáo viên" />
           <Tab label="Chi tiết học sinh" />
+          <Tab label="Chi tiết thu chi khác" />
         </Tabs>
         <Box sx={{ p: 2 }}>
           {tab === 0 && (
@@ -701,6 +1017,129 @@ const FinancialStatisticsPanel = () => {
                   count={studentPagination.totalPages}
                   page={studentPagination.page}
                   onChange={handleStudentPageChange}
+                  color="primary"
+                />
+              </Box>
+            </>
+          )}
+          {tab === 2 && (
+            <>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h6" fontWeight="bold">
+                  Quản lý thu chi khác
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleOpenOtherTransactionDialog('add')}
+                  sx={commonStyles.primaryButton}
+                >
+                  Thêm giao dịch
+                </Button>
+              </Box>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Tiêu đề</TableCell>
+                      <TableCell>Mô tả</TableCell>
+                      <TableCell align="center">Loại</TableCell>
+                      <TableCell align="center">Danh mục</TableCell>
+                      <TableCell align="center">Ngày</TableCell>
+                      <TableCell align="right">Số tiền</TableCell>
+                      <TableCell align="center">Phương thức</TableCell>
+                      <TableCell align="center">Thao tác</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {loadingOther ? (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">
+                          <Typography>Đang tải...</Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : otherTransactions.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">
+                          <Typography color="textSecondary">Chưa có giao dịch nào</Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      otherTransactions.map((transaction) => (
+                        <TableRow key={transaction.id} hover>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight="medium">
+                              {transaction.title}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" color="textSecondary">
+                              {transaction.description}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={transaction.type === 'income' ? 'Thu nhập' : 'Chi phí'}
+                              color={transaction.type === 'income' ? 'success' : 'error'}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="body2">
+                              {transaction.category}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="body2">
+                              {new Date(transaction.date).toLocaleDateString('vi-VN')}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography 
+                              variant="body2" 
+                              fontWeight="bold"
+                              color={transaction.type === 'income' ? 'success.main' : 'error.main'}
+                            >
+                              {transaction.amount.toLocaleString()} ₫
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Typography variant="body2">
+                              {transaction.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Tooltip title="Chỉnh sửa">
+                              <IconButton 
+                                size="small" 
+                                color="primary" 
+                                onClick={() => handleOpenOtherTransactionDialog('edit', transaction)}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Xóa">
+                              <IconButton 
+                                size="small" 
+                                color="error" 
+                                onClick={() => handleDeleteOtherTransaction(transaction)}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              {/* Pagination for Other Transactions */}
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <Pagination
+                  count={otherPagination.totalPages}
+                  page={otherPagination.page}
+                  onChange={handleOtherPageChange}
                   color="primary"
                 />
               </Box>
@@ -1109,6 +1548,156 @@ const FinancialStatisticsPanel = () => {
           </DialogActions>
         </Dialog>
       )}
+
+      {/* Other Transaction Dialog */}
+      <Dialog
+        open={otherTransactionDialog.open}
+        onClose={handleCloseOtherTransactionDialog}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <DialogTitle sx={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          py: 3,
+          px: 4,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
+              {otherTransactionDialog.type === 'add' ? 'Thêm giao dịch mới' : 'Chỉnh sửa giao dịch'}
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              {otherTransactionDialog.type === 'add' ? 'Thêm giao dịch thu chi mới' : 'Cập nhật thông tin giao dịch'}
+            </Typography>
+          </Box>
+          <Box sx={{
+            bgcolor: 'rgba(255,255,255,0.2)',
+            borderRadius: '50%',
+            p: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <AddIcon sx={{ fontSize: 28, color: 'white' }} />
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          <Box sx={{ p: 4 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Tiêu đề giao dịch"
+                  value={otherTransactionForm.title}
+                  onChange={(e) => setOtherTransactionForm({ ...otherTransactionForm, title: e.target.value })}
+                  sx={commonStyles.formField}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Mô tả"
+                  value={otherTransactionForm.description}
+                  onChange={(e) => setOtherTransactionForm({ ...otherTransactionForm, description: e.target.value })}
+                  multiline
+                  rows={3}
+                  sx={commonStyles.formField}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth sx={commonStyles.formField}>
+                  <InputLabel>Loại giao dịch</InputLabel>
+                  <Select
+                    value={otherTransactionForm.type}
+                    onChange={(e) => setOtherTransactionForm({ ...otherTransactionForm, type: e.target.value })}
+                    label="Loại giao dịch"
+                  >
+                    <MenuItem value="income">Thu nhập</MenuItem>
+                    <MenuItem value="expense">Chi phí</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Danh mục"
+                  value={otherTransactionForm.category}
+                  onChange={(e) => setOtherTransactionForm({ ...otherTransactionForm, category: e.target.value })}
+                  sx={commonStyles.formField}
+                  placeholder="VD: Điện, Nước, Thuê mặt bằng..."
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Ngày giao dịch"
+                  type="date"
+                  value={otherTransactionForm.date}
+                  onChange={(e) => setOtherTransactionForm({ ...otherTransactionForm, date: e.target.value })}
+                  sx={commonStyles.formField}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Số tiền"
+                  type="number"
+                  value={otherTransactionForm.amount}
+                  onChange={(e) => setOtherTransactionForm({ ...otherTransactionForm, amount: e.target.value })}
+                  sx={commonStyles.formField}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">₫</InputAdornment>,
+                  }}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControl fullWidth sx={commonStyles.formField}>
+                  <InputLabel>Phương thức thanh toán</InputLabel>
+                  <Select
+                    value={otherTransactionForm.paymentMethod}
+                    onChange={(e) => setOtherTransactionForm({ ...otherTransactionForm, paymentMethod: e.target.value })}
+                    label="Phương thức thanh toán"
+                  >
+                    <MenuItem value="cash">Tiền mặt</MenuItem>
+                    <MenuItem value="bank_transfer">Chuyển khoản</MenuItem>
+                    <MenuItem value="card">Thẻ tín dụng</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, bgcolor: '#f8f9fa' }}>
+          <Button
+            onClick={handleCloseOtherTransactionDialog}
+            disabled={otherTransactionLoading}
+            sx={commonStyles.secondaryButton}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleSaveOtherTransaction}
+            variant="contained"
+            disabled={otherTransactionLoading || !otherTransactionForm.title || !otherTransactionForm.amount}
+            sx={commonStyles.primaryButton}
+          >
+            {otherTransactionLoading ? 'Đang lưu...' : (otherTransactionDialog.type === 'add' ? 'Thêm giao dịch' : 'Cập nhật')}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <NotificationSnackbar
         open={snackbar.open}

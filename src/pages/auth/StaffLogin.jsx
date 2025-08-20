@@ -11,15 +11,15 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
-  Paper,
-  Divider
+  Divider,
+  Avatar
 } from '@mui/material';
 import {
   Visibility,
   VisibilityOff,
-  School,
   Email,
-  Lock
+  Lock,
+  Security
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -28,13 +28,15 @@ import { loginValidationSchema } from '../../validations/loginValidation';
 import { getDashboardPath } from '../../utils/helpers';
 import { USER_ROLES } from '../../utils/constants';
 
-const Login = () => {
+const StaffLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, logout, error: authError, clearError } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [roleError, setRoleError] = useState('');
 
   const from = location.state?.from?.pathname || '/';
+  const message = location.state?.message;
 
   const {
     values,
@@ -54,8 +56,8 @@ const Login = () => {
 
   // Autofill fix: đồng bộ giá trị input khi trình duyệt tự động điền
   useEffect(() => {
-    const emailInput = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
+    const emailInput = document.getElementById('staff-email');
+    const passwordInput = document.getElementById('staff-password');
     // Nếu input có value mà state chưa có, cập nhật lại state
     if (emailInput && emailInput.value && values.email !== emailInput.value) {
       handleChange({ target: { name: 'email', value: emailInput.value } });
@@ -73,58 +75,42 @@ const Login = () => {
       }
     }, 500);
     return () => clearInterval(autofillInterval);
-  }, [values.email, values.password]);
+  }, [values.email, values.password, handleChange]);
 
-    const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted, preventing default reload');
     setIsSubmitting(true);
     clearError();
 
     const isValid = validate();
     if (!isValid) {
-      console.log('Form validation failed');
       setIsSubmitting(false);
       return;
     }
 
     try {
-      console.log('Attempting login with:', { email: values.email, password: '***' });
       const result = await login({
         email: values.email,
         password: values.password
       });
 
-      console.log('Login result:', result);
-
-      // Nếu login thành công, result sẽ có user data
       if (result && result.user) {
         const userRole = result.user.role;
-        console.log('Login successful, navigating to:', userRole);
         
-        // Kiểm tra xem user có phải là student hoặc parent không
-        if (userRole === USER_ROLES.STUDENT || userRole === USER_ROLES.PARENT) {
+        // Kiểm tra xem user có phải là admin hoặc teacher không
+        if (userRole === USER_ROLES.ADMIN || userRole === USER_ROLES.TEACHER) {
+          setRoleError('');
           navigate(getDashboardPath(userRole), { replace: true });
         } else {
-          // Nếu là admin hoặc teacher, chuyển hướng đến trang staff login
+          // Nếu không phải admin/teacher, hiển thị lỗi
           clearError();
+          setRoleError('Tài khoản này không có quyền truy cập vào hệ thống quản lý. Vui lòng sử dụng trang đăng nhập thông thường.');
           // Logout để xóa session
           logout();
-          navigate('/staff-login', { 
-            replace: true,
-            state: { 
-              message: 'Tài khoản này dành cho quản trị viên và giáo viên. Vui lòng sử dụng trang đăng nhập quản lý.' 
-            }
-          });
         }
-      } else {
-        console.log('Login failed, result is null');
       }
-      // Nếu login thất bại, result sẽ là null và error đã được set trong AuthContext
     } catch (error) {
       console.error('Login failed with error:', error);
-      // Không cần làm gì thêm vì AuthContext đã xử lý error và set vào state
-      // Error sẽ được hiển thị thông qua authError từ useAuth()
     } finally {
       setIsSubmitting(false);
     }
@@ -138,7 +124,7 @@ const Login = () => {
     <Box sx={{
       minHeight: '100vh',
       display: 'flex',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)',
       position: 'relative',
       '&::before': {
         content: '""',
@@ -147,7 +133,7 @@ const Login = () => {
         left: 0,
         right: 0,
         bottom: 0,
-        background: 'url(/images/login-bg.jpg)',
+        background: 'url(/images/admin-bg.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         opacity: 0.1,
@@ -162,14 +148,16 @@ const Login = () => {
       }}>
         <Card sx={{
           width: '100%',
-          maxWidth: 450,
+          maxWidth: 500,
           mx: 'auto',
           borderRadius: 4,
-          boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.2)',
           backdropFilter: 'blur(20px)',
-          background: 'rgba(255, 255, 255, 0.95)'
+          background: 'rgba(255, 255, 255, 0.98)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
         }}>
           <CardContent sx={{ p: 5 }}>
+            {/* Header với icon và title */}
             <Box
               sx={{
                 display: 'flex',
@@ -178,17 +166,20 @@ const Login = () => {
                 mb: 4,
               }}
             >
-              <School sx={{
-                fontSize: 64,
-                color: 'primary.text',
+              <Avatar sx={{
+                width: 80,
+                height: 80,
+                bgcolor: 'primary.main',
                 mb: 2,
-                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
-              }} />
-              <Typography component="h1" variant="h3" fontWeight="bold" gutterBottom>
-                Đăng nhập
+                boxShadow: '0 8px 16px rgba(0,0,0,0.2)'
+              }}>
+                <Security sx={{ fontSize: 40 }} />
+              </Avatar>
+              <Typography component="h1" variant="h4" fontWeight="bold" gutterBottom>
+                Hệ thống Quản lý
               </Typography>
-              <Typography variant="body1" color="textSecondary" align="center" sx={{ maxWidth: 300 }}>
-                Chào mừng bạn đến với hệ thống quản lý English Center
+              <Typography variant="body1" color="textSecondary" align="center" sx={{ maxWidth: 350 }}>
+                Đăng nhập dành cho Quản trị viên và Giáo viên
               </Typography>
             </Box>
 
@@ -197,14 +188,26 @@ const Login = () => {
                 {authError}
               </Alert>
             )}
+            
+            {roleError && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                {roleError}
+              </Alert>
+            )}
+            
+            {message && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                {message}
+              </Alert>
+            )}
 
             <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
               <TextField
                 margin="normal"
                 required
                 fullWidth
-                id="email"
-                label="Email"
+                id="staff-email"
+                label="Email công việc"
                 name="email"
                 type="email"
                 autoComplete="email"
@@ -226,7 +229,7 @@ const Login = () => {
                     borderRadius: 2,
                     backgroundColor: 'white',
                     '&.Mui-focused fieldset': {
-                      borderColor: '#764ba2',
+                      borderColor: '#1e3c72',
                       boxShadow: 'none',
                     },
                     '&.Mui-focused': {
@@ -263,7 +266,7 @@ const Login = () => {
                 name="password"
                 label="Mật khẩu"
                 type={showPassword ? 'text' : 'password'}
-                id="password"
+                id="staff-password"
                 autoComplete="current-password"
                 value={values.password}
                 onChange={handleChange}
@@ -293,7 +296,7 @@ const Login = () => {
                     borderRadius: 2,
                     backgroundColor: 'white',
                     '&.Mui-focused fieldset': {
-                      borderColor: '#764ba2',
+                      borderColor: '#1e3c72',
                       boxShadow: 'none',
                     },
                     '&.Mui-focused': {
@@ -346,7 +349,7 @@ const Login = () => {
                     color: 'primary.main',
                     fontWeight: 500,
                     '&:hover': {
-                      backgroundColor: 'rgba(118, 75, 162, 0.04)',
+                      backgroundColor: 'rgba(30, 60, 114, 0.04)',
                       textDecoration: 'underline'
                     }
                   }}
@@ -369,10 +372,12 @@ const Login = () => {
                   fontWeight: 600,
                   borderRadius: 2,
                   textTransform: 'none',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  boxShadow: '0 6px 16px rgba(0,0,0,0.2)',
+                  background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)',
                   '&:hover': {
-                    boxShadow: '0 6px 16px rgba(0,0,0,0.2)',
-                    transform: 'translateY(-1px)'
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
+                    transform: 'translateY(-1px)',
+                    background: 'linear-gradient(135deg, #2a5298 0%, #1e3c72 100%)'
                   },
                   transition: 'all 0.2s ease-in-out'
                 }}
@@ -380,9 +385,37 @@ const Login = () => {
                 {isSubmitting ? (
                   <CircularProgress size={24} color="inherit" />
                 ) : (
-                  'Đăng nhập'
+                  'Đăng nhập Hệ thống Quản lý'
                 )}
               </Button>
+
+              {/* Divider */}
+              <Divider sx={{ my: 3 }}>
+                <Typography variant="body2" color="textSecondary">
+                  hoặc
+                </Typography>
+              </Divider>
+
+              {/* Link về trang đăng nhập thông thường */}
+              <Box textAlign="center">
+                <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                  Bạn là học sinh hoặc phụ huynh?
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => navigate('/login')}
+                  sx={{
+                    textTransform: 'none',
+                    borderRadius: 2,
+                    '&:hover': {
+                      backgroundColor: 'rgba(30, 60, 114, 0.04)'
+                    }
+                  }}
+                >
+                  Đăng nhập thông thường
+                </Button>
+              </Box>
             </Box>
           </CardContent>
         </Card>
@@ -391,4 +424,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default StaffLogin;

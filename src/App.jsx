@@ -4,6 +4,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { HomePageProvider } from './contexts/HomePageContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import DashboardLayout from './components/layouts/DashboardLayout';
 
@@ -13,8 +14,10 @@ import theme from './theme';
 // Pages
 import Home from './pages/Home';
 import Login from './pages/auth/Login';
+import StaffLogin from './pages/auth/StaffLogin';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import VerifyEmail from './pages/auth/VerifyEmail';
+import TeacherDetail from './pages/TeacherDetail';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -25,6 +28,7 @@ import TeacherManagement from './pages/admin/TeacherManagement';
 import ParentManagement from './pages/admin/ParentManagement';
 import Statistics from './pages/admin/Statistics';
 import AdminProfile from './pages/Profile/AdminProfile';
+import HomePageManagement from './pages/admin/HomePageManagement';
 
 // Teacher Pages
 import TeacherDashboard from './pages/teacher/Dashboard';
@@ -54,13 +58,16 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <Router>
-          <Routes>
+        <HomePageProvider>
+          <Router>
+            <Routes>
             {/* Trang chủ chung - hiển thị khác nhau tùy trạng thái đăng nhập */}
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/staff-login" element={<StaffLogin />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/verify-email" element={<VerifyEmail />} />
+            <Route path="/teacher/:teacherId" element={<TeacherDetail />} />
             <Route path="/profile" element={
               !user ? <Navigate to="/" replace /> : (
                 <Navigate to={
@@ -78,14 +85,15 @@ function App() {
               element={
                 <ProtectedRoute requiredRole={USER_ROLES.ADMIN}>
                     <Routes>
-                    <Route path="dashboard" element={<AdminDashboard />} />
-                      <Route path="advertisements" element={<AdvertisementManagement />} />
+                                        <Route path="dashboard" element={<AdminDashboard />} />
+                    <Route path="advertisements" element={<AdvertisementManagement />} />
                     <Route path="classes" element={<ClassManagement />} />
                     <Route path="students" element={<StudentManagement />} />
                     <Route path="teachers" element={<TeacherManagement />} />
                     <Route path="parents" element={<ParentManagement />} />
                     <Route path="statistics" element={<Statistics />} />
                     <Route path="profile" element={<AdminProfile />} />
+                    <Route path="homepage" element={<HomePageManagement />} />
                     <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                     </Routes>
                 </ProtectedRoute>
@@ -145,6 +153,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>
+        </HomePageProvider>
       </AuthProvider>
     </ThemeProvider>
   );

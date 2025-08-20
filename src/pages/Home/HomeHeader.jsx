@@ -178,19 +178,21 @@ const HomeHeader = () => {
       );
     }
     return (
-      <Button
-        variant="contained"
-        onClick={() => navigate('/login')}
-        startIcon={<PersonIcon />}
-        sx={{
-          ...commonStyles.primaryButton,
-          px: 2.5,
-          py: 1,
-          borderRadius: 2,
-        }}
-      >
-        Đăng nhập
-      </Button>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Button
+          variant="contained"
+          onClick={() => navigate('/login')}
+          startIcon={<PersonIcon />}
+          sx={{
+            ...commonStyles.primaryButton,
+            px: 2.5,
+            py: 1,
+            borderRadius: 2,
+          }}
+        >
+          Đăng nhập
+        </Button>
+      </Box>
     );
   };
 
@@ -251,9 +253,11 @@ const HomeHeader = () => {
                   </MenuItem>
                 </>
               ) : (
-              <MenuItem onClick={() => { navigate('/login'); handleMobileMenuClose(); }}>
-                Đăng nhập
-              </MenuItem>
+                <>
+                  <MenuItem onClick={() => { navigate('/login'); handleMobileMenuClose(); }}>
+                    Đăng nhập
+                  </MenuItem>
+                </>
               )}
             </Menu>
           </>

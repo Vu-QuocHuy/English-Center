@@ -96,10 +96,10 @@ const AdvertisementSlider = ({ autoPlay = true, interval = 8000, ads }) => {
   };
 
   return (
-    <Box sx={{ position: 'relative' }}>
+    <Box sx={{ position: 'relative', mt: 0 }}>
       <Slider {...settings}>
-        {sortedAds.map((ad, idx) => (
-          <Box key={ad.id || idx} sx={{ position: 'relative', height: 550, overflow: 'hidden' }}>
+                 {sortedAds.map((ad, idx) => (
+           <Box key={ad.id || idx} sx={{ position: 'relative', height: 650, overflow: 'hidden' }}>
             <Card
               sx={{
                 height: '100%',
