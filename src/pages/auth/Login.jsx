@@ -110,7 +110,7 @@ const Login = () => {
           clearError();
           // Logout để xóa session
           logout();
-          navigate('/staff-login', { 
+          navigate('/staff/login', { 
             replace: true,
             state: { 
               message: 'Tài khoản này dành cho quản trị viên và giáo viên. Vui lòng sử dụng trang đăng nhập quản lý.' 

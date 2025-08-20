@@ -64,7 +64,7 @@ function App() {
             {/* Trang chủ chung - hiển thị khác nhau tùy trạng thái đăng nhập */}
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/staff-login" element={<StaffLogin />} />
+            <Route path="/staff/login" element={<StaffLogin />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/verify-email" element={<VerifyEmail />} />
             <Route path="/teacher/:teacherId" element={<TeacherDetail />} />
